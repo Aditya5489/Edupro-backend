@@ -20,7 +20,7 @@ const uploadToCloudinary = (buffer, filename) => {
         resolve(result);
       }
     );
-    uploadStream.end(buffer); // send file buffer to Cloudinary
+    uploadStream.end(buffer); 
   });
 };
 
@@ -32,14 +32,14 @@ const handleGenerateContent = async (req, res) => {
       return res.status(400).json({ success: false, message: "No file uploaded" });
     }
 
-    // Upload to Cloudinary
+   
     const cloudinaryRes = await uploadToCloudinary(req.file.buffer, req.file.originalname);
 
-    // Extract text from PDF
+    
     const pdfData = await pdfParse(req.file.buffer);
     const extractedText = pdfData.text;
 
-    // Select prompt
+    
     let prompt;
     if (type === "quiz") {
       prompt = `From the following notes, create 15 multiple-choice quiz questions with 4 options each and indicate the correct answer.\n\nNotes:\n${extractedText}`;
@@ -59,7 +59,7 @@ ${extractedText}`;
       return res.status(400).json({ success: false, message: "Invalid type" });
     }
 
-    // AI generation
+    
     const result = await model.generateContent(prompt);
     const content = result.response.text();
 

@@ -49,7 +49,7 @@ const login = async (req, res) => {
       httpOnly: true,
       sameSite: "lax",
       secure: false,
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000 
     });
 
     res.status(200).json({ token, message: "User logged in successfully",user: { id: user._id, email: user.email } });

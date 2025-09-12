@@ -27,14 +27,14 @@ const analyzeJobDescription = async (req, res) => {
   try {
     let extractedText = "";
 
-    // 1️⃣ Handle file upload
+    
     if (req.file) {
       const cloudinaryRes = await uploadToCloudinary(req.file.buffer, req.file.originalname);
       const pdfData = await pdfParse(req.file.buffer);
       extractedText = pdfData.text;
       res.locals.cloudinaryUrl = cloudinaryRes.secure_url;
     } 
-    // 2️⃣ Handle text input
+    
     else if (req.body.jdText && req.body.jdText.trim()) {
       extractedText = req.body.jdText;
     } 
@@ -42,12 +42,12 @@ const analyzeJobDescription = async (req, res) => {
       return res.status(400).json({ success: false, message: "No file or JD text provided" });
     }
 
-    // 3️⃣ Get user skills
-    const userId = req.user.id; // make sure auth middleware sets req.user
+   
+    const userId = req.user.id; 
     const userSkills = await Skill.find({ userId });
     const formattedSkills = userSkills.map(s => `${s.skillName} (${s.proficiency})`).join(", ") || "No skills found";
 
-    // 4️⃣ AI Prompt
+   
     const prompt = `
       Job Description:\n${extractedText}\n
       User Skills:\n${formattedSkills}\n
@@ -70,7 +70,7 @@ const analyzeJobDescription = async (req, res) => {
     const result = await model.generateContent(prompt);
     const aiResponseText = result.response.text();
 
-    // 5️⃣ Parse AI response into object
+    
     let analysis;
     try {
         const cleaned = aiResponseText
@@ -90,7 +90,7 @@ const analyzeJobDescription = async (req, res) => {
       };
     }
 
-    // 6️⃣ Return final JSON for frontend
+    
     res.json({
       success: true,
       cloudinaryUrl: res.locals.cloudinaryUrl || null,

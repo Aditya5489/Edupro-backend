@@ -15,7 +15,7 @@ router.post("/", async (req, res) => {
   }
 
   try {
-    // JDoodle language mapping
+    
     const langMap = {
       javascript: "nodejs",
       python: "python3",
@@ -26,7 +26,7 @@ router.post("/", async (req, res) => {
     const payload = {
       script: code,
       language: langMap[language] || language,
-      versionIndex: "0", // default version
+      versionIndex: "0", 
       clientId: JD_CLIENT_ID,
       clientSecret: JD_CLIENT_SECRET
     };

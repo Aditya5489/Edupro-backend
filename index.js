@@ -30,35 +30,30 @@ const io = new Server(server, {
 });
 
 const userSocketMap = {};
+const roomCodeMap = {};
 
 const getAllConnectedClients = (roomId) => {
   return Array.from(io.sockets.adapter.rooms.get(roomId) || []).map((socketId) => ({
     socketId,
     username: userSocketMap[socketId]
   }));
-}
+};
 
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
-
   socket.on("join", ({ roomId, username }) => {
     if (!username) return;
     userSocketMap[socket.id] = username;
     socket.join(roomId);
+    if (roomCodeMap[roomId]) {
+      io.to(socket.id).emit("code-change", { code: roomCodeMap[roomId] });
+    }
     const clients = getAllConnectedClients(roomId);
     io.in(roomId).emit("joined", { clients, username, socketId: socket.id });
   });
 
   socket.on("code-change", ({ roomId, code }) => {
+    roomCodeMap[roomId] = code;
     socket.to(roomId).emit("code-change", { code });
-  });
-
-  socket.on("get-code", ({ roomId }) => {
-    socket.to(roomId).emit("send-code", { socketId: socket.id });
-  });
-
-  socket.on("send-code", ({ code, socketId }) => {
-    io.to(socketId).emit("code-change", { code });
   });
 
   socket.on("send-message", ({ roomId, username, message }) => {
@@ -84,13 +79,11 @@ io.on("connection", (socket) => {
   });
 });
 
-// --- Middlewares ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 
-// --- Routes ---
 app.use('/api', authRouter);
 app.use('/api/studyplan', planRouter);
 app.use('/api/generatecontent', quizRouter);

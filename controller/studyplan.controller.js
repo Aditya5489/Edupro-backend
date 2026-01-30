@@ -1,5 +1,5 @@
 const dotenv = require('dotenv');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai'); // NEW SDK
 const StudyPlan = require('../models/studyplan.model');
 const { fetchYouTubeVideo } = require('../config/youtube'); 
 const allocateBadge = require("../utils/badgeAllocator");
@@ -7,9 +7,8 @@ const User = require('../models/user.model');
 
 dotenv.config();
 
-// Initialize Gemini v1
-const genAI = new GoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5' }); // v1 model
+// Initialize GenAI client
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const generatePlan = async (req, res) => {
   try {
@@ -45,15 +44,13 @@ Example output:
 Generate a ${skillLevel} level "${studyGoal}" plan with ${timePerDay} hours/day for ${durationInDays} days.
     `;
 
-    // Use Gemini v1 chat API
-    const result = await model.chat({
-      messages: [
-        { author: 'user', content: prompt }
-      ]
+    // Generate content using GenAI
+    const result = await genAI.models.generateContent({
+      model: 'gemini-2.0-flash', // v1 model, stable
+      contents: prompt,
     });
 
-    // Extract AI text
-    const text = result.output[0].content[0].text.trim();
+    const text = result.text.trim();
 
     // Parse JSON from AI response
     const jsonMatch = text.match(/\[[\s\S]*\]/);

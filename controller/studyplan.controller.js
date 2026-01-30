@@ -9,7 +9,14 @@ const User = require('../models/user.model');
 dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+const model = genAI.getGenerativeModel({
+  model: 'gemini-1.5-flash-001',
+  generationConfig: {
+    temperature: 0.4,
+    topP: 0.9,
+    maxOutputTokens: 4096,
+  },
+});
 
 const generatePlan = async (req, res) => {
   try {

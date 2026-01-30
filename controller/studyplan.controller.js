@@ -2,17 +2,14 @@ const dotenv = require('dotenv');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const StudyPlan = require('../models/studyplan.model');
 const { fetchYouTubeVideo } = require('../config/youtube'); 
-const { get } = require('mongoose');
 const allocateBadge = require("../utils/badgeAllocator");
 const User = require('../models/user.model');
 
 dotenv.config();
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({
-  model: "models/gemini-pro",
-});
-
+// Initialize Gemini v1
+const genAI = new GoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5' }); // v1 model
 
 const generatePlan = async (req, res) => {
   try {
@@ -48,10 +45,17 @@ Example output:
 Generate a ${skillLevel} level "${studyGoal}" plan with ${timePerDay} hours/day for ${durationInDays} days.
     `;
 
-    // Ask Gemini
-    const result = await model.generateContent(prompt);
-    let text = result.response.text().trim();
+    // Use Gemini v1 chat API
+    const result = await model.chat({
+      messages: [
+        { author: 'user', content: prompt }
+      ]
+    });
 
+    // Extract AI text
+    const text = result.output[0].content[0].text.trim();
+
+    // Parse JSON from AI response
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
       return res.status(500).json({ error: "AI did not return valid JSON" });
@@ -64,7 +68,7 @@ Generate a ${skillLevel} level "${studyGoal}" plan with ${timePerDay} hours/day 
       return res.status(500).json({ error: "Invalid JSON format from AI" });
     }
 
-    
+    // Fetch YouTube videos for each task
     for (let day of parsedPlan) {
       for (let task of day.tasks) {
         if (task.topic) {
@@ -75,20 +79,21 @@ Generate a ${skillLevel} level "${studyGoal}" plan with ${timePerDay} hours/day 
             console.error(`❌ Failed fetching YouTube for ${task.topic}`, err);
             task.youtube = [];
           }
-        }else {
+        } else {
           task.youtube = [];
         }
       }
     }
+
     console.log("Plan before saving:", JSON.stringify(parsedPlan, null, 2));
 
-    
+    // Save plan to DB
     const savedPlan = await StudyPlan.create({
       userId,
       studyGoal,
       timePerDay,
       skillLevel,
-      durationInDays, 
+      durationInDays,
       plan: parsedPlan
     });
 
@@ -119,7 +124,7 @@ const markPlanCompleted = async (req, res) => {
 
     const user = await User.findById(userId);
     user.xpPoints += 10;
-    user.badges= allocateBadge(user.xpPoints);
+    user.badges = allocateBadge(user.xpPoints);
 
     await user.save();
 
@@ -139,7 +144,7 @@ const getUserStudyPlans = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const plans = await StudyPlan.find({ userId }).sort({ createdAt: -1 }); 
+    const plans = await StudyPlan.find({ userId }).sort({ createdAt: -1 });
     if (!plans || plans.length === 0) {
       return res.status(404).json({ message: "No study plans found for this user" });
     }
@@ -168,8 +173,6 @@ const getStudyPlanById = async (req, res) => {
   }
 };
 
-
-
 const deletePlan = async (req, res) => {
   try {
     const { planId } = req.body;
@@ -191,4 +194,4 @@ const deletePlan = async (req, res) => {
   }
 };
 
-module.exports = { generatePlan ,markPlanCompleted,getUserStudyPlans,deletePlan,getStudyPlanById};
+module.exports = { generatePlan, markPlanCompleted, getUserStudyPlans, deletePlan, getStudyPlanById };
